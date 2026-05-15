@@ -2,24 +2,34 @@ using UnityEngine;
 
 public class EnemyFollow : MonoBehaviour
 {
-    public Transform player;     // Player object
-    public float speed = 3f;     // Enemy speed
-    public float stopDistance = 2f; // Stop distance
+    public Transform player;
+
+    public float speed = 3f;
+
+    public float followDistance = 15f;
 
     void Update()
     {
-        // Distance between enemy and player
+        // Distance check
         float distance = Vector3.Distance(transform.position, player.position);
 
-        // If player is farther than stop distance
-        if(distance > stopDistance)
+        if (distance < followDistance)
         {
-            // Move toward player
-            transform.position = Vector3.MoveTowards(
-                transform.position,
-                player.position,
-                speed * Time.deltaTime
+            // Target position
+            Vector3 targetPosition = new Vector3(
+                player.position.x,
+                transform.position.y,
+                player.position.z
             );
+
+            // Direction to player
+            Vector3 direction = (targetPosition - transform.position).normalized;
+
+            // Rotate smoothly
+            transform.forward = direction;
+
+            // Move toward player
+            transform.position += direction * speed * Time.deltaTime;
         }
     }
 }
