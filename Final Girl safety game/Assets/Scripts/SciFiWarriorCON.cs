@@ -18,10 +18,8 @@ public class SciFiWarriorCON : MonoBehaviour
     public GameObject startText;
     public GameObject alertText;
     public GameObject choicePanel;
-
-    [Header("Result UI")]
-    public GameObject warningText;   // A result
-    public GameObject correctText;   // B result
+    public GameObject warningText;
+    public GameObject correctText;
 
     private bool canMove = false;
     private bool choiceShown = false;
@@ -39,7 +37,6 @@ public class SciFiWarriorCON : MonoBehaviour
         if (startText != null) startText.SetActive(true);
         if (alertText != null) alertText.SetActive(false);
         if (choicePanel != null) choicePanel.SetActive(false);
-
         if (warningText != null) warningText.SetActive(false);
         if (correctText != null) correctText.SetActive(false);
     }
@@ -73,7 +70,7 @@ public class SciFiWarriorCON : MonoBehaviour
             anim.SetFloat(speedHash, 0f);
         }
 
-        // SHOW CHOICES
+        // SHOW CHOICE
         if (distance <= stopDistance && !choiceShown)
         {
             choiceShown = true;
@@ -82,6 +79,20 @@ public class SciFiWarriorCON : MonoBehaviour
             if (alertText != null) alertText.SetActive(true);
 
             StartCoroutine(ShowChoices());
+        }
+
+        // ⭐ KEYBOARD INPUT (I / O)
+        if (choicePanel != null && choicePanel.activeSelf && !choiceMade)
+        {
+            if (Input.GetKeyDown(KeyCode.I))
+            {
+                ChooseA_Stranger();
+            }
+
+            if (Input.GetKeyDown(KeyCode.O))
+            {
+                ChooseB_Police();
+            }
         }
     }
 
@@ -97,14 +108,12 @@ public class SciFiWarriorCON : MonoBehaviour
     }
 
     // =========================
-    // CHOICE A (WARNING)
+    // A = WARNING (I KEY)
     // =========================
     public void ChooseA_Stranger()
     {
         if (choiceMade) return;
         choiceMade = true;
-
-        Debug.Log("WARNING CHOICE");
 
         if (choicePanel != null)
             choicePanel.SetActive(false);
@@ -114,17 +123,17 @@ public class SciFiWarriorCON : MonoBehaviour
 
         if (correctText != null)
             correctText.SetActive(false);
+
+        Debug.Log("CHOICE A (I KEY) - WARNING");
     }
 
     // =========================
-    // CHOICE B (CORRECT)
+    // B = CORRECT (O KEY)
     // =========================
     public void ChooseB_Police()
     {
         if (choiceMade) return;
         choiceMade = true;
-
-        Debug.Log("SAFE CHOICE");
 
         if (choicePanel != null)
             choicePanel.SetActive(false);
@@ -134,5 +143,7 @@ public class SciFiWarriorCON : MonoBehaviour
 
         if (warningText != null)
             warningText.SetActive(false);
+
+        Debug.Log("CHOICE B (O KEY) - CORRECT");
     }
 }
