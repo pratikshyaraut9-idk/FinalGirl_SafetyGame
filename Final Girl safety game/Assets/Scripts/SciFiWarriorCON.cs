@@ -2,66 +2,29 @@ using UnityEngine;
 
 public class SciFiWarriorCON : MonoBehaviour
 {
-    // Reference to the player
-    private GameObject player;
+    public Transform player;
+    public GameObject copPrefab;
 
-    // Enemy speed
-    [SerializeField]
-    private float moveSpeed = 2.0f;
+    public float triggerDistance = 3f;
 
-    // Distance to detect player
-    [SerializeField]
-    private float chaseDistance = 15f;
-
-    // Distance to stop near player
-    [SerializeField]
-    private float stopDistance = 2f;
-
-    // Animator reference
-    private Animator anim;
-
-    // Animator parameter hash
-    private int speedHash = Animator.StringToHash("Speed");
-
-    void Start()
-    {
-        // Get Animator
-        anim = GetComponent<Animator>();
-
-        // Find player with Player tag
-        player = GameObject.FindWithTag("Player");
-    }
+    private bool copSpawned = false;
 
     void Update()
     {
-        // If player not found
-        if (player == null)
-            return;
+        float distance = Vector3.Distance(transform.position, player.position);
 
-        // Calculate distance
-        float distance = Vector3.Distance(transform.position, player.transform.position);
-
-        // Chase player
-        if (distance < chaseDistance && distance > stopDistance)
+        if (distance <= triggerDistance && !copSpawned)
         {
-            // Play walk animation
-            anim.SetFloat(speedHash, 0.7f);
+            copSpawned = true;
 
-            // Look at player
-            Vector3 targetPos = player.transform.position;
-            targetPos.y = transform.position.y;
+            GameObject cop = Instantiate(copPrefab, transform.position, Quaternion.identity);
 
-            transform.LookAt(targetPos);
+            CopAI copAI = cop.GetComponent<CopAI>();
 
-            // Move forward
-            transform.Translate(Vector3.forward * moveSpeed * Time.deltaTime);
-
-            Debug.Log("Enemy Moving");
-        }
-        else
-        {
-            // Stop animation
-            anim.SetFloat(speedHash, 0f);
+            if (copAI != null)
+            {
+                copAI.player = player;
+            }
         }
     }
 }
