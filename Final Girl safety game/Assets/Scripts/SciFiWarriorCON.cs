@@ -1,138 +1,238 @@
 using UnityEngine;
+using System.Collections;
 
 public class SciFiWarriorCON : MonoBehaviour
 {
+    private GameObject player;
+    private Animator anim;
+
     [Header("Movement")]
-    public Transform player;
-    public float moveSpeed = 7f;
-    public float stopDistance = 6f;
-    public float startDelay = 5f;
+    [SerializeField] private float moveSpeed = 2f;
+    [SerializeField] private float chaseDistance = 15f;
+    [SerializeField] private float stopDistance = 2f;
+
+    [Header("Follow Settings")]
+    [SerializeField] private float followSpeed = 3f;
+    [SerializeField] private float catchDistance = 1.5f;
+
+    [Header("Start Delay")]
+    [SerializeField] private float startDelay = 5f;
 
     [Header("UI")]
     public GameObject startText;
     public GameObject alertText;
     public GameObject choicePanel;
+
     public GameObject warningText;
     public GameObject correctText;
-    public GameObject winPanel;
-    public GameObject losePanel;
 
-    [Header("House")]
-    public Transform houseGoal;
-    public Transform policeBooth;
+    public GameObject loseText;
+    public GameObject winText;
 
+    [Header("Home")]
+    public Transform homePoint;
+    public float winDistance = 3f;
+
+    private bool canMove = false;
+    private bool choiceShown = false;
     private bool choiceMade = false;
-    private bool hasChosenCorrectly = false;
+    private bool strangerFollowing = false;
     private bool gameEnded = false;
-    private bool chaseStarted = false;
+
+    private int speedHash = Animator.StringToHash("Speed");
 
     void Start()
     {
-        if (choicePanel != null)
-            choicePanel.SetActive(false);
+        anim = GetComponent<Animator>();
+        player = GameObject.FindWithTag("Player");
 
-        if (warningText != null)
-            warningText.SetActive(false);
+        StartCoroutine(StartAfterDelay());
 
-        if (correctText != null)
-            correctText.SetActive(false);
+        // UI setup
+        if (startText != null) startText.SetActive(true);
+        if (alertText != null) alertText.SetActive(false);
+        if (choicePanel != null) choicePanel.SetActive(false);
 
-        if (winPanel != null)
-            winPanel.SetActive(false);
+        if (warningText != null) warningText.SetActive(false);
+        if (correctText != null) correctText.SetActive(false);
 
-        if (losePanel != null)
-            losePanel.SetActive(false);
-
-        Invoke("StartChasing", startDelay);
+        if (loseText != null) loseText.SetActive(false);
+        if (winText != null) winText.SetActive(false);
     }
 
-    void StartChasing()
+    IEnumerator StartAfterDelay()
     {
-        chaseStarted = true;
-        Debug.Log("Enemy started chasing");
+        yield return new WaitForSeconds(startDelay);
+        canMove = true;
     }
 
     void Update()
     {
-        if (gameEnded)
+        if (player == null || gameEnded)
             return;
 
-        if (chaseStarted && !choiceMade && player != null)
+        float distance = Vector3.Distance(transform.position, player.transform.position);
+
+        // =========================
+        // NPC MOVE BEFORE CHOICE
+        // =========================
+        if (!strangerFollowing && canMove)
         {
-            transform.position = Vector3.MoveTowards(
-                transform.position,
-                player.position,
-                moveSpeed * Time.deltaTime
-            );
-
-            transform.LookAt(player);
-
-            float distance = Vector3.Distance(transform.position, player.position);
-
-            if (distance <= stopDistance)
+            if (distance < chaseDistance && distance > stopDistance)
             {
-                choiceMade = true;
+                anim.SetFloat(speedHash, 0.7f);
 
-                if (choicePanel != null)
-                    choicePanel.SetActive(true);
+                Vector3 targetPos = player.transform.position;
+                targetPos.y = transform.position.y;
 
-                Debug.Log("Choice panel opened");
+                transform.LookAt(targetPos);
+                transform.Translate(Vector3.forward * moveSpeed * Time.deltaTime);
+            }
+            else
+            {
+                anim.SetFloat(speedHash, 0f);
             }
         }
 
-        if (choiceMade)
+        // =========================
+        // SHOW CHOICE
+        // =========================
+        if (distance <= stopDistance && !choiceShown)
+        {
+            choiceShown = true;
+
+            if (startText != null)
+                startText.SetActive(false);
+
+            if (alertText != null)
+                alertText.SetActive(true);
+
+            StartCoroutine(ShowChoices());
+        }
+
+        // =========================
+        // INPUT (I / O)
+        // =========================
+        if (choicePanel != null && choicePanel.activeSelf && !choiceMade)
         {
             if (Input.GetKeyDown(KeyCode.I))
-            {
-                Debug.Log("Pressed I");
-
-                if (warningText != null)
-                    warningText.SetActive(true);
-
-                if (losePanel != null)
-                    losePanel.SetActive(true);
-
-                gameEnded = true;
-            }
+                ChooseA_Stranger();
 
             if (Input.GetKeyDown(KeyCode.O))
+                ChooseB_Police();
+        }
+
+        // =========================
+        // FOLLOW SYSTEM (A ONLY)
+        // =========================
+        if (strangerFollowing)
+        {
+            Vector3 targetPos = player.transform.position;
+            targetPos.y = transform.position.y;
+
+            transform.LookAt(targetPos);
+            transform.position += transform.forward * followSpeed * Time.deltaTime;
+
+            float catchDist = Vector3.Distance(transform.position, player.transform.position);
+
+            if (catchDist <= catchDistance)
             {
-                Debug.Log("Pressed O");
+                gameEnded = true;
 
-                hasChosenCorrectly = true;
+                if (loseText != null)
+                    loseText.SetActive(true);
 
-                if (correctText != null)
-                    correctText.SetActive(true);
+                Debug.Log("LOSE - CAUGHT");
+            }
+        }
 
-                if (choicePanel != null)
-                    choicePanel.SetActive(false);
+        // =========================
+        // WIN CONDITION
+        // =========================
+        if (homePoint != null)
+        {
+            float homeDist = Vector3.Distance(player.transform.position, homePoint.position);
 
-                // Disable enemy so player can walk safely
-                chaseStarted = false;
-                
-                Debug.Log("Correct choice made! Walk to the house to win.");
+            if (homeDist <= winDistance)
+            {
+                gameEnded = true;
+
+                if (winText != null)
+                    winText.SetActive(true);
+
+                Debug.Log("WIN - SAFE");
             }
         }
     }
 
-    // THIS METHOD IS REQUIRED - HouseTrigger calls this
-    public void OnReachedHouse()
+    IEnumerator ShowChoices()
     {
-        Debug.Log("OnReachedHouse called");
+        yield return new WaitForSeconds(2f);
 
-        if (hasChosenCorrectly && !gameEnded)
-        {
-            gameEnded = true;
+        if (alertText != null)
+            alertText.SetActive(false);
 
-            if (winPanel != null)
-            {
-                winPanel.SetActive(true);
-                Debug.Log("WIN PANEL SHOWN - Player reached the house!");
-            }
-        }
-        else if (!hasChosenCorrectly)
-        {
-            Debug.Log("Player reached house but didn't make correct choice yet");
-        }
+        if (choicePanel != null)
+            choicePanel.SetActive(true);
+    }
+
+    // =========================
+    // AUTO HIDE UI FUNCTION
+    // =========================
+    IEnumerator HideAfterSeconds(GameObject uiObject, float time)
+    {
+        yield return new WaitForSeconds(time);
+
+        if (uiObject != null)
+            uiObject.SetActive(false);
+    }
+
+    // =========================
+    // A = DANGER
+    // =========================
+    public void ChooseA_Stranger()
+    {
+        if (choiceMade) return;
+
+        choiceMade = true;
+
+        if (choicePanel != null)
+            choicePanel.SetActive(false);
+
+        StartCoroutine(WarningThenFollow());
+    }
+
+    IEnumerator WarningThenFollow()
+    {
+        if (warningText != null)
+            warningText.SetActive(true);
+
+        // AUTO HIDE WARNING
+        StartCoroutine(HideAfterSeconds(warningText, 3f));
+
+        yield return new WaitForSeconds(3f);
+
+        strangerFollowing = true;
+    }
+
+    // =========================
+    // B = SAFE
+    // =========================
+    public void ChooseB_Police()
+    {
+        if (choiceMade) return;
+
+        choiceMade = true;
+
+        if (choicePanel != null)
+            choicePanel.SetActive(false);
+
+        if (correctText != null)
+            correctText.SetActive(true);
+
+        // AUTO HIDE SAFE MESSAGE
+        StartCoroutine(HideAfterSeconds(correctText, 3f));
+
+        strangerFollowing = false;
     }
 }
